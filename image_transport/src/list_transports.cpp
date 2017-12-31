@@ -1,13 +1,13 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
-* 
+*
 *  Copyright (c) 2009, Willow Garage, Inc.
 *  All rights reserved.
-* 
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions
 *  are met:
-* 
+*
 *   * Redistributions of source code must retain the above copyright
 *     notice, this list of conditions and the following disclaimer.
 *   * Redistributions in binary form must reproduce the above
@@ -17,7 +17,7 @@
 *   * Neither the name of the Willow Garage nor the names of its
 *     contributors may be used to endorse or promote products derived
 *     from this software without specific prior written permission.
-* 
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -35,8 +35,6 @@
 #include "image_transport/publisher_plugin.h"
 #include "image_transport/subscriber_plugin.h"
 #include <pluginlib/class_loader.h>
-#include <boost/foreach.hpp>
-#include <boost/algorithm/string/erase.hpp>
 #include <map>
 
 using namespace image_transport;
@@ -66,7 +64,7 @@ int main(int argc, char** argv)
   typedef std::map<std::string, TransportDesc> StatusMap;
   StatusMap transports;
 
-  BOOST_FOREACH(const std::string& lookup_name, pub_loader.getDeclaredClasses()) {
+	std::for_each(pub_loader.getDeclaredClasses().begin(), pub_loader.getDeclaredClasses().end(), [this](const std::string& lookup_name){
     std::string transport_name = boost::erase_last_copy(lookup_name, "_pub");
     transports[transport_name].pub_name = lookup_name;
     transports[transport_name].package_name = pub_loader.getClassPackage(lookup_name);
@@ -80,7 +78,7 @@ int main(int argc, char** argv)
     catch (const CreateClassException& e) {
       transports[transport_name].pub_status = CREATE_FAILURE;
     }
-  }
+  });
 
   BOOST_FOREACH(const std::string& lookup_name, sub_loader.getDeclaredClasses()) {
     std::string transport_name = boost::erase_last_copy(lookup_name, "_sub");
@@ -136,6 +134,6 @@ int main(int argc, char** argv)
     else
       printf(" - Subscriber: %s\n", sub_loader.getClassDescription(td.sub_name).c_str());
   }
-  
+
   return 0;
 }

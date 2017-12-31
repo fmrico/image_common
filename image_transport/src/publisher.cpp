@@ -1,13 +1,13 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
-* 
+*
 *  Copyright (c) 2009, Willow Garage, Inc.
 *  All rights reserved.
-* 
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions
 *  are met:
-* 
+*
 *   * Redistributions of source code must retain the above copyright
 *     notice, this list of conditions and the following disclaimer.
 *   * Redistributions in binary form must reproduce the above
@@ -17,7 +17,7 @@
 *   * Neither the name of the Willow Garage nor the names of its
 *     contributors may be used to endorse or promote products derived
 *     from this software without specific prior written permission.
-* 
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -35,8 +35,6 @@
 #include "image_transport/publisher.h"
 #include "image_transport/publisher_plugin.h"
 #include <pluginlib/class_loader.h>
-#include <boost/foreach.hpp>
-#include <boost/algorithm/string/erase.hpp>
 
 namespace image_transport {
 
@@ -54,10 +52,7 @@ struct Publisher::Impl
 
   uint32_t getNumSubscribers() const
   {
-    uint32_t count = 0;
-    BOOST_FOREACH(const boost::shared_ptr<PublisherPlugin>& pub, publishers_)
-      count += pub->getNumSubscribers();
-    return count;
+    return publishers_.size();
   }
 
   std::string getTopic() const
@@ -69,13 +64,12 @@ struct Publisher::Impl
   {
     return !unadvertised_;
   }
-  
+
   void shutdown()
   {
     if (!unadvertised_) {
       unadvertised_ = true;
-      BOOST_FOREACH(boost::shared_ptr<PublisherPlugin>& pub, publishers_)
-        pub->shutdown();
+			std::for_each(publishers_.begin(), publishers_.end(), [](std::shared_ptr<PublisherPlugin>& pub) { pub->shutdown(); })
       publishers_.clear();
     }
   }
@@ -84,14 +78,14 @@ struct Publisher::Impl
                     const SubscriberStatusCallback& user_cb)
   {
     SingleSubscriberPublisher ssp(plugin_pub.getSubscriberName(), getTopic(),
-                                  boost::bind(&Publisher::Impl::getNumSubscribers, this),
+                                  std::bind(&Publisher::Impl::getNumSubscribers, this),
                                   plugin_pub.publish_fn_);
     user_cb(ssp);
   }
-  
+
   std::string base_topic_;
   PubLoaderPtr loader_;
-  std::vector<boost::shared_ptr<PublisherPlugin> > publishers_;
+  std::vector<std::shared_ptr<PublisherPlugin> > publishers_;
   bool unadvertised_;
   //double constructed_;
 };
@@ -117,15 +111,16 @@ Publisher::Publisher(ros::NodeHandle& nh, const std::string& base_topic, uint32_
     blacklist.insert(blacklist_vec[i]);
   }
 
-  BOOST_FOREACH(const std::string& lookup_name, loader->getDeclaredClasses()) {
-    const std::string transport_name = boost::erase_last_copy(lookup_name, "_pub");
+	std::for_each(loader->getDeclaredClasses().begin(), loader->getDeclaredClasses().end(), [this](const std::string& lookup_name)
+	{
+    const std::string transport_name = std::erase_last_copy(lookup_name, "_pub");
     if (blacklist.count(transport_name))
     {
       continue;
     }
 
     try {
-      boost::shared_ptr<PublisherPlugin> pub = loader->createInstance(lookup_name);
+      std::shared_ptr<PublisherPlugin> pub = loader->createInstance(lookup_name);
       impl_->publishers_.push_back(pub);
       pub->advertise(nh, impl_->base_topic_, queue_size, rebindCB(connect_cb),
                      rebindCB(disconnect_cb), tracked_object, latch);
@@ -134,7 +129,7 @@ Publisher::Publisher(ros::NodeHandle& nh, const std::string& base_topic, uint32_
       ROS_DEBUG("Failed to load plugin %s, error string: %s",
                 lookup_name.c_str(), e.what());
     }
-  }
+  });
 
   if (impl_->publishers_.empty())
     throw Exception("No plugins found! Does `rospack plugins --attrib=plugin "
@@ -159,11 +154,12 @@ void Publisher::publish(const sensor_msgs::Image& message) const
     ROS_ASSERT_MSG(false, "Call to publish() on an invalid image_transport::Publisher");
     return;
   }
-  
-  BOOST_FOREACH(const boost::shared_ptr<PublisherPlugin>& pub, impl_->publishers_) {
+
+	std::for_each(impl_->publishers_.begin(), impl_->publishers_.end(), [](std::shared_ptr<PublisherPlugin>& pub)
+	{
     if (pub->getNumSubscribers() > 0)
       pub->publish(message);
-  }
+  });
 }
 
 void Publisher::publish(const sensor_msgs::ImageConstPtr& message) const
@@ -172,11 +168,12 @@ void Publisher::publish(const sensor_msgs::ImageConstPtr& message) const
     ROS_ASSERT_MSG(false, "Call to publish() on an invalid image_transport::Publisher");
     return;
   }
-  
-  BOOST_FOREACH(const boost::shared_ptr<PublisherPlugin>& pub, impl_->publishers_) {
+
+	std::for_each(impl_->publishers_.begin(), impl_->publishers_.end(), [](const std::shared_ptr<PublisherPlugin>& pub)
+	{
     if (pub->getNumSubscribers() > 0)
       pub->publish(message);
-  }
+  });
 }
 
 void Publisher::shutdown()
@@ -208,7 +205,7 @@ SubscriberStatusCallback Publisher::rebindCB(const SubscriberStatusCallback& use
   if (user_cb)
   {
     ImplWPtr impl_wptr(impl_);
-    return boost::bind(&Publisher::weakSubscriberCb, impl_wptr, _1, user_cb);
+    return std::bind(&Publisher::weakSubscriberCb, impl_wptr, _1, user_cb);
   }
   else
     return SubscriberStatusCallback();

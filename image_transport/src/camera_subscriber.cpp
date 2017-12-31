@@ -1,13 +1,13 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
-* 
+*
 *  Copyright (c) 2009, Willow Garage, Inc.
 *  All rights reserved.
-* 
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions
 *  are met:
-* 
+*
 *   * Redistributions of source code must retain the above copyright
 *     notice, this list of conditions and the following disclaimer.
 *   * Redistributions in binary form must reproduce the above
@@ -17,7 +17,7 @@
 *   * Neither the name of the Willow Garage nor the names of its
 *     contributors may be used to endorse or promote products derived
 *     from this software without specific prior written permission.
-* 
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -62,7 +62,7 @@ struct CameraSubscriber::Impl
   {
     return !unsubscribed_;
   }
-  
+
   void shutdown()
   {
     if (!unsubscribed_) {
@@ -87,7 +87,7 @@ struct CameraSubscriber::Impl
     }
     image_received_ = info_received_ = both_received_ = 0;
   }
-  
+
   SubscriberFilter image_sub_;
   message_filters::Subscriber<sensor_msgs::CameraInfo> info_sub_;
   message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::CameraInfo> sync_;
@@ -110,15 +110,15 @@ CameraSubscriber::CameraSubscriber(ImageTransport& image_it, ros::NodeHandle& in
   impl_->image_sub_.subscribe(image_it, image_topic, queue_size, transport_hints);
   impl_->info_sub_ .subscribe(info_nh, info_topic, queue_size, transport_hints.getRosHints());
   impl_->sync_.connectInput(impl_->image_sub_, impl_->info_sub_);
-  // need for Boost.Bind here is kind of broken
-  impl_->sync_.registerCallback(boost::bind(callback, _1, _2));
+  // need for std.Bind here is kind of broken
+  impl_->sync_.registerCallback(std::bind(callback, _1, _2));
 
   // Complain every 10s if it appears that the image and info topics are not synchronized
-  impl_->image_sub_.registerCallback(boost::bind(increment, &impl_->image_received_));
-  impl_->info_sub_.registerCallback(boost::bind(increment, &impl_->info_received_));
-  impl_->sync_.registerCallback(boost::bind(increment, &impl_->both_received_));
+  impl_->image_sub_.registerCallback(std::bind(increment, &impl_->image_received_));
+  impl_->info_sub_.registerCallback(std::bind(increment, &impl_->info_received_));
+  impl_->sync_.registerCallback(std::bind(increment, &impl_->both_received_));
   impl_->check_synced_timer_ = info_nh.createWallTimer(ros::WallDuration(10.0),
-                                                       boost::bind(&Impl::checkImagesSynchronized, impl_.get()));
+                                                       std::bind(&Impl::checkImagesSynchronized, impl_.get()));
 }
 
 std::string CameraSubscriber::getTopic() const

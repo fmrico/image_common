@@ -1,13 +1,13 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
-* 
+*
 *  Copyright (c) 2009, Willow Garage, Inc.
 *  All rights reserved.
-* 
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions
 *  are met:
-* 
+*
 *   * Redistributions of source code must retain the above copyright
 *     notice, this list of conditions and the following disclaimer.
 *   * Redistributions in binary form must reproduce the above
@@ -17,7 +17,7 @@
 *   * Neither the name of the Willow Garage nor the names of its
 *     contributors may be used to endorse or promote products derived
 *     from this software without specific prior written permission.
-* 
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -36,7 +36,6 @@
 #define IMAGE_TRANSPORT_SIMPLE_SUBSCRIBER_PLUGIN_H
 
 #include "image_transport/subscriber_plugin.h"
-#include <boost/scoped_ptr.hpp>
 
 namespace image_transport {
 
@@ -99,7 +98,7 @@ protected:
   {
     return base_topic + "/" + getTransportName();
   }
-  
+
   virtual void subscribeImpl(ros::NodeHandle& nh, const std::string& base_topic, uint32_t queue_size,
                              const Callback& callback, const ros::VoidPtr& tracked_object,
                              const TransportHints& transport_hints)
@@ -109,7 +108,7 @@ protected:
     simple_impl_.reset(new SimpleSubscriberPluginImpl(param_nh));
 
     simple_impl_->sub_ = nh.subscribe<M>(getTopicToSubscribe(base_topic), queue_size,
-                                         boost::bind(&SimpleSubscriberPlugin::internalCallback, this, _1, callback),
+                                         std::bind(&SimpleSubscriberPlugin::internalCallback, this, _1, callback),
                                          tracked_object, transport_hints.getRosHints());
   }
 
@@ -128,12 +127,12 @@ private:
       : param_nh_(nh)
     {
     }
-    
+
     const ros::NodeHandle param_nh_;
     ros::Subscriber sub_;
   };
-  
-  boost::scoped_ptr<SimpleSubscriberPluginImpl> simple_impl_;
+
+  std::unique_ptr<SimpleSubscriberPluginImpl> simple_impl_;
 };
 
 } //namespace image_transport
